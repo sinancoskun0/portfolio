@@ -1,0 +1,22 @@
+Basic Prompt: Create a 3D text helix visualizer in a single HTML file. The user inputs text and the characters spiral around a rotating double helix shape. Make it interactive with mouse controls.
+
+Engineered Prompt: Create a 3D text helix visualizer in a single HTML file using Three.js (import from CDN). 
+Requirements: Structure: 
+- Two intertwined helical strands (like DNA) 
+- User's input text splits: odd characters on strand A, even on strand B 
+- Each character is a 3D text sprite positioned along the helix 
+- Helix has 3 full rotations over its height 
+- Helix auto-rotates slowly on Y axis Input: 
+- Text input field at top of screen 
+- Updates helix in real-time as user types 
+- Default text: "HELLO WORLD" Interaction: 
+- Mouse drag: rotate helix manually (OrbitControls) 
+- Scroll: zoom in/out 
+- Slider: helix rotation speed (0 to 2, default 0.5) 
+- Slider: helix radius (50 to 200, default 100) 
+- Color pickers: strand A color, strand B color Visual: 
+- Dark background (#0a0a0a) 
+- Characters are white, 14px, face camera (billboarded) 
+- Thin lines connecting characters along each strand 
+- Soft ambient light + directional light from above 
+- Canvas fills viewport, responsive resize Code: Use ES6 modules, clean structure, comments on key sections.
