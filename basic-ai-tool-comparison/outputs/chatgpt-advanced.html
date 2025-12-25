@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>3D Text Helix Visualizer</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #0a0a0a;
+      font-family: sans-serif;
+      color: #fff;
+    }
+
+    #ui {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 10px 14px;
+      border-radius: 8px;
+      z-index: 10;
+    }
+
+    #ui label {
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    #ui input[type="text"] {
+      width: 220px;
+    }
+
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <!-- UI CONTROLS -->
+  <div id="ui">
+    <label>
+      Text
+      <input id="textInput" type="text" value="HELLO WORLD" />
+    </label>
+
+    <label>
+      Rotation Speed
+      <input id="speedSlider" type="range" min="0" max="2" step="0.01" value="0.5" />
+    </label>
+
+    <label>
+      Helix Radius
+      <input id="radiusSlider" type="range" min="50" max="200" step="1" value="100" />
+    </label>
+
+    <label>
+      Strand A
+      <input id="colorA" type="color" value="#ffffff" />
+    </label>
+
+    <label>
+      Strand B
+      <input id="colorB" type="color" value="#ffffff" />
+    </label>
+  </div>
+
+  <!-- THREE.JS -->
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+    import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+
+    /* ---------------------------------------------------
+       SCENE SETUP
+    --------------------------------------------------- */
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0a0a);
+
+    const camera = new THREE.PerspectiveCamera(
+      60,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      2000
+    );
+    camera.position.set(0, 120, 400);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
+
+    /* ---------------------------------------------------
+       LIGHTING
+    --------------------------------------------------- */
+    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(0, 300, 200);
+    scene.add(dirLight);
+
+    /* ---------------------------------------------------
+       CONTROLS
+    --------------------------------------------------- */
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+
+    /* ---------------------------------------------------
+       HELIX GROUPS
+    --------------------------------------------------- */
+    const helixGroup = new THREE.Group();
+    const strandAGroup = new THREE.Group();
+    const strandBGroup = new THREE.Group();
+
+    helixGroup.add(strandAGroup);
+    helixGroup.add(strandBGroup);
+    scene.add(helixGroup);
+
+    let lineA = null;
+    let lineB = null;
+
+    /* ---------------------------------------------------
+       TEXT SPRITE CREATION
+    --------------------------------------------------- */
+    function createTextSprite(char, color) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      const fontSize = 14;
+      ctx.font = `${fontSize}px Arial`;
+
+      const metrics = ctx.measureText(char);
+      canvas.width = metrics.width + 10;
+      canvas.height = fontSize + 10;
+
+      ctx.font = `${fontSize}px Arial`;
+      ctx.fillStyle = color;
+      ctx.textBaseline = 'top';
+      ctx.fillText(char, 5, 5);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true;
+
+      const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+      const sprite = new THREE.Sprite(material);
+
+      sprite.scale.set(canvas.width, canvas.height, 1);
+      return sprite;
+    }
+
+    /* ---------------------------------------------------
+       HELIX BUILDING
+    --------------------------------------------------- */
+    function clearGroup(group) {
+      while (group.children.length) {
+        group.remove(group.children[0]);
+      }
+    }
+
+    function buildHelix(text) {
+      clearGroup(strandAGroup);
+      clearGroup(strandBGroup);
+      if (lineA) scene.remove(lineA);
+      if (lineB) scene.remove(lineB);
+
+      const radius = parseFloat(radiusSlider.value);
+      const turns = 3;
+      const chars = text.split('');
+      const spacing = 18;
+      const height = chars.length * spacing;
+      const pointsA = [];
+      const pointsB = [];
+
+      const colorA = colorAPicker.value;
+      const colorB = colorBPicker.value;
+
+      chars.forEach((char, i) => {
+        const t = (i / (chars.length - 1 || 1)) * Math.PI * 2 * turns;
+        const y = i * spacing - height / 2;
+
+        const isEven = i % 2 === 0;
+        const angle = isEven ? t : t + Math.PI;
+
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+
+        const sprite = createTextSprite(
+          char,
+          isEven ? colorA : colorB
+        );
+        sprite.position.set(x, y, z);
+
+        if (isEven) {
+          strandAGroup.add(sprite);
+          pointsA.push(new THREE.Vector3(x, y, z));
+        } else {
+          strandBGroup.add(sprite);
+          pointsB.push(new THREE.Vector3(x, y, z));
+        }
+      });
+
+      // Lines for strands
+      if (pointsA.length > 1) {
+        const geoA = new THREE.BufferGeometry().setFromPoints(pointsA);
+        const matA = new THREE.LineBasicMaterial({ color: colorA });
+        lineA = new THREE.Line(geoA, matA);
+        scene.add(lineA);
+      }
+
+      if (pointsB.length > 1) {
+        const geoB = new THREE.BufferGeometry().setFromPoints(pointsB);
+        const matB = new THREE.LineBasicMaterial({ color: colorB });
+        lineB = new THREE.Line(geoB, matB);
+        scene.add(lineB);
+      }
+    }
+
+    /* ---------------------------------------------------
+       UI BINDINGS
+    --------------------------------------------------- */
+    const textInput = document.getElementById('textInput');
+    const speedSlider = document.getElementById('speedSlider');
+    const radiusSlider = document.getElementById('radiusSlider');
+    const colorAPicker = document.getElementById('colorA');
+    const colorBPicker = document.getElementById('colorB');
+
+    function rebuild() {
+      buildHelix(textInput.value);
+    }
+
+    textInput.addEventListener('input', rebuild);
+    radiusSlider.addEventListener('input', rebuild);
+    colorAPicker.addEventListener('input', rebuild);
+    colorBPicker.addEventListener('input', rebuild);
+
+    /* ---------------------------------------------------
+       ANIMATION LOOP
+    --------------------------------------------------- */
+    function animate() {
+      requestAnimationFrame(animate);
+
+      helixGroup.rotation.y += parseFloat(speedSlider.value) * 0.005;
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    /* ---------------------------------------------------
+       RESIZE HANDLING
+    --------------------------------------------------- */
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Initial build
+    buildHelix(textInput.value);
+    animate();
+  </script>
+</body>
+</html>

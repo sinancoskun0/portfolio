@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Text Helix Visualizer</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.135.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.135.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0a0a0a;
+            color: #f0f0f0;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        #container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background-color: rgba(20, 20, 30, 0.85);
+            padding: 20px;
+            border-radius: 12px;
+            max-width: 320px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(100, 100, 150, 0.2);
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #6ee7ff;
+            text-align: center;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            background-color: rgba(30, 30, 40, 0.9);
+            border: 1px solid #444;
+            border-radius: 6px;
+            color: white;
+            font-size: 1rem;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #6ee7ff;
+            cursor: pointer;
+        }
+        
+        input[type="color"] {
+            width: 100%;
+            height: 40px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background: transparent;
+        }
+        
+        .slider-value {
+            display: inline-block;
+            margin-left: 10px;
+            color: #6ee7ff;
+            font-weight: bold;
+        }
+        
+        .color-picker-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        
+        .color-label {
+            min-width: 100px;
+        }
+        
+        .instructions {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #333;
+            font-size: 0.85rem;
+            color: #888;
+        }
+        
+        .instructions p {
+            margin-bottom: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            #ui {
+                max-width: 280px;
+                padding: 15px;
+                left: 10px;
+                right: 10px;
+                margin: 0 auto;
+            }
+            
+            h1 {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="canvas-container"></div>
+        
+        <div id="ui">
+            <h1>3D Text Helix Visualizer</h1>
+            
+            <div class="input-group">
+                <label for="text-input">Text Input</label>
+                <input type="text" id="text-input" value="HELLO WORLD" maxlength="100">
+            </div>
+            
+            <div class="input-group">
+                <label for="speed-slider">
+                    Rotation Speed: <span id="speed-value" class="slider-value">0.5</span>
+                </label>
+                <input type="range" id="speed-slider" min="0" max="2" step="0.1" value="0.5">
+            </div>
+            
+            <div class="input-group">
+                <label for="radius-slider">
+                    Helix Radius: <span id="radius-value" class="slider-value">100</span>
+                </label>
+                <input type="range" id="radius-slider" min="50" max="200" step="5" value="100">
+            </div>
+            
+            <div class="input-group">
+                <label>Strand Colors</label>
+                <div class="color-picker-container">
+                    <span class="color-label">Strand A (Odd):</span>
+                    <input type="color" id="color-a" value="#6ee7ff">
+                </div>
+                <div class="color-picker-container">
+                    <span class="color-label">Strand B (Even):</span>
+                    <input type="color" id="color-b" value="#ff6eb9">
+                </div>
+            </div>
+            
+            <div class="instructions">
+                <p><strong>Interactions:</strong></p>
+                <p>• Drag to rotate the helix</p>
+                <p>• Scroll to zoom in/out</p>
+                <p>• Type to update text in real-time</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Main Three.js application for the helix visualizer
+        class HelixVisualizer {
+            constructor() {
+                // Initialize properties
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.controls = null;
+                this.helixGroup = null;
+                this.strandA = [];
+                this.strandB = [];
+                this.linesA = [];
+                this.linesB = [];
+                this.autoRotationSpeed = 0.5;
+                this.helixRadius = 100;
+                this.strandAColor = 0x6ee7ff;
+                this.strandBColor = 0xff6eb9;
+                this.defaultText = "HELLO WORLD";
+                
+                // DOM elements
+                this.textInput = document.getElementById('text-input');
+                this.speedSlider = document.getElementById('speed-slider');
+                this.speedValue = document.getElementById('speed-value');
+                this.radiusSlider = document.getElementById('radius-slider');
+                this.radiusValue = document.getElementById('radius-value');
+                this.colorA = document.getElementById('color-a');
+                this.colorB = document.getElementById('color-b');
+                
+                // Initialize the application
+                this.init();
+                this.setupEventListeners();
+                this.createHelix(this.defaultText);
+                this.animate();
+            }
+            
+            /**
+             * Initialize the Three.js scene, camera, renderer, and controls
+             */
+            init() {
+                // Create scene
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x0a0a0a);
+                
+                // Create camera
+                const aspect = window.innerWidth / window.innerHeight;
+                this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 2000);
+                this.camera.position.set(0, 150, 400);
+                
+                // Create renderer
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                
+                // Add renderer to DOM
+                const container = document.getElementById('canvas-container');
+                container.appendChild(this.renderer.domElement);
+                
+                // Create orbit controls for mouse interaction
+                this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+                this.controls.enableDamping = true;
+                this.controls.dampingFactor = 0.05;
+                this.controls.minDistance = 150;
+                this.controls.maxDistance = 800;
+                
+                // Add lighting
+                this.setupLighting();
+                
+                // Handle window resize
+                window.addEventListener('resize', () => this.onWindowResize());
+            }
+            
+            /**
+             * Set up lighting for the scene
+             */
+            setupLighting() {
+                // Ambient light for overall illumination
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+                this.scene.add(ambientLight);
+                
+                // Directional light from above (like sunlight)
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(0, 200, 100);
+                directionalLight.castShadow = true;
+                directionalLight.shadow.mapSize.width = 2048;
+                directionalLight.shadow.mapSize.height = 2048;
+                this.scene.add(directionalLight);
+                
+                // Additional fill light from the side
+                const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+                fillLight.position.set(-100, 50, -100);
+                this.scene.add(fillLight);
+            }
+            
+            /**
+             * Set up event listeners for UI controls
+             */
+            setupEventListeners() {
+                // Text input event
+                this.textInput.addEventListener('input', (e) => {
+                    this.createHelix(e.target.value || this.defaultText);
+                });
+                
+                // Rotation speed slider
+                this.speedSlider.addEventListener('input', (e) => {
+                    this.autoRotationSpeed = parseFloat(e.target.value);
+                    this.speedValue.textContent = this.autoRotationSpeed.toFixed(1);
+                });
+                
+                // Helix radius slider
+                this.radiusSlider.addEventListener('input', (e) => {
+                    this.helixRadius = parseInt(e.target.value);
+                    this.radiusValue.textContent = this.helixRadius;
+                    this.updateHelixGeometry();
+                });
+                
+                // Color pickers
+                this.colorA.addEventListener('input', (e) => {
+                    this.strandAColor = new THREE.Color(e.target.value).getHex();
+                    this.updateStrandColors();
+                });
+                
+                this.colorB.addEventListener('input', (e) => {
+                    this.strandBColor = new THREE.Color(e.target.value).getHex();
+                    this.updateStrandColors();
+                });
+            }
+            
+            /**
+             * Create a 3D text sprite for a character
+             * @param {string} char - The character to display
+             * @param {number} color - Hexadecimal color value
+             * @returns {THREE.Sprite} 3D text sprite
+             */
+            createTextSprite(char, color) {
+                // Create canvas for text rendering
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = 64;
+                canvas.height = 64;
+                
+                // Draw text on canvas
+                context.font = "bold 48px Arial";
+                context.fillStyle = `#${color.toString(16).padStart(6, '0')}`;
+                context.textAlign = "center";
+                context.textBaseline = "middle";
+                context.fillText(char, canvas.width/2, canvas.height/2);
+                
+                // Create texture from canvas
+                const texture = new THREE.CanvasTexture(canvas);
+                texture.needsUpdate = true;
+                
+                // Create sprite material
+                const spriteMaterial = new THREE.SpriteMaterial({ 
+                    map: texture,
+                    transparent: true 
+                });
+                
+                // Create sprite
+                const sprite = new THREE.Sprite(spriteMaterial);
+                sprite.scale.set(14, 14, 1);
+                
+                return sprite;
+            }
+            
+            /**
+             * Create a complete helix from the input text
+             * @param {string} text - The input text
+             */
+            createHelix(text) {
+                // Remove any existing helix
+                if (this.helixGroup) {
+                    this.scene.remove(this.helixGroup);
+                    this.strandA = [];
+                    this.strandB = [];
+                    this.linesA = [];
+                    this.linesB = [];
+                }
+                
+                // Create a new group for the helix
+                this.helixGroup = new THREE.Group();
+                this.scene.add(this.helixGroup);
+                
+                // Split text into characters for each strand
+                const chars = text.split('');
+                const totalChars = chars.length;
+                
+                // Parameters for the helix
+                const turns = 3; // Number of full rotations
+                const height = 300; // Total height of the helix
+                const startY = -height/2; // Starting Y position
+                
+                // Create characters along the helix
+                for (let i = 0; i < totalChars; i++) {
+                    const char = chars[i];
+                    const isOdd = i % 2 === 0;
+                    
+                    // Calculate position along helix
+                    const t = i / Math.max(1, totalChars - 1); // Normalized position (0 to 1)
+                    const y = startY + t * height;
+                    const angle = t * turns * Math.PI * 2;
+                    
+                    // Offset for two intertwined strands
+                    const radius = this.helixRadius;
+                    const offset = isOdd ? 0 : Math.PI; // 180 degree offset for second strand
+                    
+                    const x = Math.cos(angle + offset) * radius;
+                    const z = Math.sin(angle + offset) * radius;
+                    
+                    // Create text sprite
+                    const color = isOdd ? this.strandAColor : this.strandBColor;
+                    const textSprite = this.createTextSprite(char, color);
+                    textSprite.position.set(x, y, z);
+                    
+                    // Add to appropriate strand
+                    if (isOdd) {
+                        this.strandA.push(textSprite);
+                    } else {
+                        this.strandB.push(textSprite);
+                    }
+                    
+                    // Add to helix group
+                    this.helixGroup.add(textSprite);
+                }
+                
+                // Create connecting lines for each strand
+                this.createConnectingLines(this.strandA, this.strandAColor, this.linesA);
+                this.createConnectingLines(this.strandB, this.strandBColor, this.linesB);
+            }
+            
+            /**
+             * Create connecting lines between characters in a strand
+             * @param {Array} strand - Array of character sprites
+             * @param {number} color - Line color
+             * @param {Array} lineArray - Array to store line objects
+             */
+            createConnectingLines(strand, color, lineArray) {
+                // Clear existing lines
+                lineArray.forEach(line => this.helixGroup.remove(line));
+                lineArray.length = 0;
+                
+                // Create lines between consecutive characters
+                for (let i = 0; i < strand.length - 1; i++) {
+                    const start = strand[i].position;
+                    const end = strand[i + 1].position;
+                    
+                    // Create geometry for the line
+                    const geometry = new THREE.BufferGeometry().setFromPoints([start, end]);
+                    
+                    // Create material for the line
+                    const material = new THREE.LineBasicMaterial({ 
+                        color: color,
+                        transparent: true,
+                        opacity: 0.6,
+                        linewidth: 1
+                    });
+                    
+                    // Create line object
+                    const line = new THREE.Line(geometry, material);
+                    
+                    // Add to helix group and store reference
+                    this.helixGroup.add(line);
+                    lineArray.push(line);
+                }
+            }
+            
+            /**
+             * Update helix geometry when radius changes
+             */
+            updateHelixGeometry() {
+                if (!this.helixGroup) return;
+                
+                const turns = 3;
+                const height = 300;
+                const startY = -height/2;
+                const totalChars = this.strandA.length + this.strandB.length;
+                
+                // Update positions for strand A
+                this.strandA.forEach((sprite, i) => {
+                    const strandIndex = i * 2; // Odd characters (0, 2, 4...)
+                    const t = strandIndex / Math.max(1, totalChars - 1);
+                    const y = startY + t * height;
+                    const angle = t * turns * Math.PI * 2;
+                    
+                    const x = Math.cos(angle) * this.helixRadius;
+                    const z = Math.sin(angle) * this.helixRadius;
+                    
+                    sprite.position.set(x, y, z);
+                });
+                
+                // Update positions for strand B
+                this.strandB.forEach((sprite, i) => {
+                    const strandIndex = i * 2 + 1; // Even characters (1, 3, 5...)
+                    const t = strandIndex / Math.max(1, totalChars - 1);
+                    const y = startY + t * height;
+                    const angle = t * turns * Math.PI * 2;
+                    
+                    const x = Math.cos(angle + Math.PI) * this.helixRadius;
+                    const z = Math.sin(angle + Math.PI) * this.helixRadius;
+                    
+                    sprite.position.set(x, y, z);
+                });
+                
+                // Update connecting lines
+                this.updateConnectingLines(this.strandA, this.linesA);
+                this.updateConnectingLines(this.strandB, this.linesB);
+            }
+            
+            /**
+             * Update connecting lines when geometry changes
+             */
+            updateConnectingLines(strand, lineArray) {
+                for (let i = 0; i < lineArray.length; i++) {
+                    const line = lineArray[i];
+                    const start = strand[i].position;
+                    const end = strand[i + 1].position;
+                    
+                    // Update line geometry
+                    line.geometry.setFromPoints([start, end]);
+                    line.geometry.attributes.position.needsUpdate = true;
+                }
+            }
+            
+            /**
+             * Update strand colors when color pickers change
+             */
+            updateStrandColors() {
+                // Update strand A colors
+                this.strandA.forEach(sprite => {
+                    const material = sprite.material;
+                    const canvas = material.map.image;
+                    const context = canvas.getContext('2d');
+                    
+                    // Clear and redraw with new color
+                    context.clearRect(0, 0, canvas.width, canvas.height);
+                    context.font = "bold 48px Arial";
+                    context.fillStyle = `#${this.strandAColor.toString(16).padStart(6, '0')}`;
+                    context.textAlign = "center";
+                    context.textBaseline = "middle";
+                    
+                    // Get the character from the original text
+                    const textInput = document.getElementById('text-input');
+                    const chars = textInput.value.split('');
+                    const charIndex = this.strandA.indexOf(sprite) * 2;
+                    const char = chars[charIndex] || ' ';
+                    
+                    context.fillText(char, canvas.width/2, canvas.height/2);
+                    
+                    // Update texture
+                    material.map.needsUpdate = true;
+                });
+                
+                // Update strand B colors
+                this.strandB.forEach(sprite => {
+                    const material = sprite.material;
+                    const canvas = material.map.image;
+                    const context = canvas.getContext('2d');
+                    
+                    // Clear and redraw with new color
+                    context.clearRect(0, 0, canvas.width, canvas.height);
+                    context.font = "bold 48px Arial";
+                    context.fillStyle = `#${this.strandBColor.toString(16).padStart(6, '0')}`;
+                    context.textAlign = "center";
+                    context.textBaseline = "middle";
+                    
+                    // Get the character from the original text
+                    const textInput = document.getElementById('text-input');
+                    const chars = textInput.value.split('');
+                    const charIndex = this.strandB.indexOf(sprite) * 2 + 1;
+                    const char = chars[charIndex] || ' ';
+                    
+                    context.fillText(char, canvas.width/2, canvas.height/2);
+                    
+                    // Update texture
+                    material.map.needsUpdate = true;
+                });
+                
+                // Update line colors
+                this.linesA.forEach(line => {
+                    line.material.color.setHex(this.strandAColor);
+                });
+                
+                this.linesB.forEach(line => {
+                    line.material.color.setHex(this.strandBColor);
+                });
+            }
+            
+            /**
+             * Handle window resize events
+             */
+            onWindowResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+            
+            /**
+             * Animation loop
+             */
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                
+                // Auto-rotate the helix
+                if (this.helixGroup) {
+                    this.helixGroup.rotation.y += this.autoRotationSpeed * 0.005;
+                }
+                
+                // Update controls
+                this.controls.update();
+                
+                // Render the scene
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+        
+        // Initialize the application when the page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            new HelixVisualizer();
+        });
+    </script>
+</body>
+</html>

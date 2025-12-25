@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Text Helix Visualizer</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #0a0a0a; /* Dark Background */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            user-select: none;
+        }
+
+        /* UI Panel Styling */
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(20, 20, 20, 0.85);
+            padding: 20px;
+            border-radius: 8px;
+            backdrop-filter: blur(5px);
+            border: 1px solid #333;
+            max-width: 300px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        h1 {
+            font-size: 1.1rem;
+            margin: 0 0 15px 0;
+            color: #ffffff;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #444;
+            padding-bottom: 10px;
+        }
+
+        .control-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.8rem;
+            color: #aaa;
+            font-weight: 600;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            background: #333;
+            border: 1px solid #555;
+            color: white;
+            border-radius: 4px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input[type="text"]:focus {
+            border-color: #00aaff;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            accent-color: #00aaff;
+        }
+
+        .color-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        
+        .color-wrapper {
+            flex: 1;
+        }
+
+        input[type="color"] {
+            width: 100%;
+            height: 30px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        /* Canvas */
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+    
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <div id="ui-container">
+        <h1>Helix Visualizer</h1>
+        
+        <div class="control-group">
+            <label for="textInput">INPUT TEXT</label>
+            <input type="text" id="textInput" value="HELLO WORLD" placeholder="Type specific text...">
+        </div>
+
+        <div class="control-group">
+            <label for="speedSlider">ROTATION SPEED</label>
+            <input type="range" id="speedSlider" min="0" max="2" step="0.1" value="0.5">
+        </div>
+
+        <div class="control-group">
+            <label for="radiusSlider">HELIX RADIUS</label>
+            <input type="range" id="radiusSlider" min="50" max="200" step="5" value="100">
+        </div>
+
+        <div class="control-group color-row">
+            <div class="color-wrapper">
+                <label for="colorA">STRAND A</label>
+                <input type="color" id="colorA" value="#ff0055">
+            </div>
+            <div class="color-wrapper">
+                <label for="colorB">STRAND B</label>
+                <input type="color" id="colorB" value="#00aaff">
+            </div>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- 1. State Management ---
+        const state = {
+            text: "HELLO WORLD",
+            radius: 100,
+            rotationSpeed: 0.5,
+            colorA: '#ff0055',
+            colorB: '#00aaff',
+            height: 600,       // Total height of the helix
+            rotations: 3,      // Total full turns over the height
+        };
+
+        // --- 2. Scene Setup ---
+        const container = document.getElementById('canvas-container');
+        
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a0a);
+        // Soft fog to fade out distant parts
+        scene.fog = new THREE.FogExp2(0x0a0a0a, 0.0012);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 2000);
+        camera.position.set(0, 0, 600);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Performance optimization
+        container.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // --- 3. Lighting ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(100, 500, 300);
+        scene.add(dirLight);
+
+        // Group to hold the helix structure for easy rotation
+        const helixGroup = new THREE.Group();
+        scene.add(helixGroup);
+
+        // --- 4. Helper Functions ---
+
+        /**
+         * Creates a 3D Sprite from a string character.
+         * Uses a dynamic HTML5 Canvas to draw text, then converts to texture.
+         */
+        function createTextSprite(char, color) {
+            const canvas = document.createElement('canvas');
+            const size = 128; // High res for crisp text
+            canvas.width = size;
+            canvas.height = size;
+
+            const ctx = canvas.getContext('2d');
+            ctx.font = 'bold 70px "Segoe UI", Arial';
+            ctx.fillStyle = color;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Text shadow for glow effect
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 15;
+            ctx.fillText(char, size / 2, size / 2);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ 
+                map: texture, 
+                transparent: true,
+                depthWrite: false, // Prevents billboard transparency issues
+                depthTest: true
+            });
+
+            const sprite = new THREE.Sprite(material);
+            sprite.scale.set(30, 30, 1); // World size
+            return sprite;
+        }
+
+        /**
+         * Main logic: Clears the scene and rebuilds the DNA strands
+         */
+        function rebuildHelix() {
+            // 1. Cleanup: Remove old meshes and dispose materials/geometries
+            while(helixGroup.children.length > 0){ 
+                const obj = helixGroup.children[0];
+                if(obj.geometry) obj.geometry.dispose();
+                if(obj.material) {
+                    if(obj.material.map) obj.material.map.dispose();
+                    obj.material.dispose();
+                }
+                helixGroup.remove(obj); 
+            }
+
+            const chars = state.text.split('');
+            const len = chars.length;
+            if (len === 0) return;
+
+            const yStart = -state.height / 2;
+            const yStep = state.height / Math.max(len, 1);
+            
+            // Calculate angle step based on desired total rotations
+            const totalAngle = Math.PI * 2 * state.rotations;
+            const angleStep = totalAngle / Math.max(len, 1);
+
+            const pointsA = [];
+            const pointsB = [];
+
+            // 2. Build Sprites
+            for (let i = 0; i < len; i++) {
+                const char = chars[i];
+                const isEven = (i % 2 === 0); 
+                
+                // Determine vertical position and rotational angle
+                const y = yStart + (i * yStep);
+                const angle = i * angleStep;
+
+                // Strand A starts at 0 rads, Strand B at PI (180 deg) rads
+                // If isEven (Strand A index), use phase 0.
+                // If !isEven (Strand B index), use phase PI.
+                const phase = isEven ? 0 : Math.PI;
+
+                const x = state.radius * Math.cos(angle + phase);
+                const z = state.radius * Math.sin(angle + phase);
+                const pos = new THREE.Vector3(x, y, z);
+
+                // Create sprite
+                const color = isEven ? state.colorA : state.colorB;
+                const sprite = createTextSprite(char, color);
+                sprite.position.copy(pos);
+                helixGroup.add(sprite);
+
+                // Save points to draw connecting lines later
+                if(isEven) pointsA.push(pos);
+                else pointsB.push(pos);
+            }
+
+            // 3. Build Connecting Lines
+            const lineMatA = new THREE.LineBasicMaterial({ color: state.colorA, opacity: 0.3, transparent: true });
+            const lineMatB = new THREE.LineBasicMaterial({ color: state.colorB, opacity: 0.3, transparent: true });
+
+            if (pointsA.length > 1) {
+                const geomA = new THREE.BufferGeometry().setFromPoints(pointsA);
+                const lineA = new THREE.Line(geomA, lineMatA);
+                helixGroup.add(lineA);
+            }
+            if (pointsB.length > 1) {
+                const geomB = new THREE.BufferGeometry().setFromPoints(pointsB);
+                const lineB = new THREE.Line(geomB, lineMatB);
+                helixGroup.add(lineB);
+            }
+        }
+
+        // --- 5. Event Listeners ---
+        const textInput = document.getElementById('textInput');
+        textInput.addEventListener('input', (e) => {
+            state.text = e.target.value;
+            rebuildHelix();
+        });
+
+        document.getElementById('speedSlider').addEventListener('input', (e) => {
+            state.rotationSpeed = parseFloat(e.target.value);
+        });
+
+        document.getElementById('radiusSlider').addEventListener('input', (e) => {
+            state.radius = parseFloat(e.target.value);
+            rebuildHelix();
+        });
+
+        document.getElementById('colorA').addEventListener('input', (e) => {
+            state.colorA = e.target.value;
+            rebuildHelix();
+        });
+
+        document.getElementById('colorB').addEventListener('input', (e) => {
+            state.colorB = e.target.value;
+            rebuildHelix();
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // --- 6. Animation Loop ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+
+            // Auto rotation
+            helixGroup.rotation.y += state.rotationSpeed * delta;
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Init
+        rebuildHelix();
+        animate();
+
+    </script>
+</body>
+</html>

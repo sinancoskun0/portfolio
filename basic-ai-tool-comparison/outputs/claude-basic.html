@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Text Helix Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+        }
+        
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+        
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+        
+        #controls h1 {
+            margin: 0 0 15px 0;
+            font-size: 24px;
+            color: #667eea;
+            text-align: center;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #764ba2;
+        }
+        
+        .slider-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .slider-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin-top: 5px;
+        }
+        
+        .slider-value {
+            font-size: 12px;
+            color: #666;
+            margin-top: 3px;
+        }
+        
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        #instructions strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="canvas-container"></div>
+        
+        <div id="controls">
+            <h1>🧬 3D Text Helix</h1>
+            <div class="input-group">
+                <label for="textInput">Enter Your Text:</label>
+                <input type="text" id="textInput" placeholder="Type something amazing..." value="HELLO WORLD">
+            </div>
+            <div class="slider-group">
+                <div class="slider-item">
+                    <label for="helixRadius">Helix Radius:</label>
+                    <input type="range" id="helixRadius" min="1" max="5" step="0.1" value="2">
+                    <span class="slider-value" id="radiusValue">2.0</span>
+                </div>
+                <div class="slider-item">
+                    <label for="helixHeight">Helix Height:</label>
+                    <input type="range" id="helixHeight" min="5" max="20" step="0.5" value="10">
+                    <span class="slider-value" id="heightValue">10.0</span>
+                </div>
+                <div class="slider-item">
+                    <label for="rotationSpeed">Rotation Speed:</label>
+                    <input type="range" id="rotationSpeed" min="0" max="2" step="0.1" value="0.5">
+                    <span class="slider-value" id="speedValue">0.5</span>
+                </div>
+                <div class="slider-item">
+                    <label for="textSize">Text Size:</label>
+                    <input type="range" id="textSize" min="0.1" max="1" step="0.05" value="0.3">
+                    <span class="slider-value" id="sizeValue">0.3</span>
+                </div>
+            </div>
+        </div>
+        
+        <div id="instructions">
+            <strong>Mouse Controls:</strong> Left Click + Drag to Rotate | Scroll to Zoom
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer;
+        let textMeshes = [];
+        let helixGroup;
+        let mouse = { x: 0, y: 0 };
+        let isDragging = false;
+        let previousMouse = { x: 0, y: 0 };
+        let rotation = { x: 0, y: 0 };
+        let autoRotationSpeed = 0.5;
+        
+        // Settings
+        let settings = {
+            text: 'HELLO WORLD',
+            helixRadius: 2,
+            helixHeight: 10,
+            rotationSpeed: 0.5,
+            textSize: 0.3
+        };
+
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a2e);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(
+                75,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000
+            );
+            camera.position.z = 15;
+            camera.position.y = 5;
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const pointLight1 = new THREE.PointLight(0x667eea, 1, 100);
+            pointLight1.position.set(10, 10, 10);
+            scene.add(pointLight1);
+            
+            const pointLight2 = new THREE.PointLight(0x764ba2, 1, 100);
+            pointLight2.position.set(-10, -10, 10);
+            scene.add(pointLight2);
+            
+            // Create helix group
+            helixGroup = new THREE.Group();
+            scene.add(helixGroup);
+            
+            // Create initial helix
+            createHelix();
+            
+            // Event listeners
+            setupEventListeners();
+            
+            // Animation loop
+            animate();
+        }
+        
+        function createHelix() {
+            // Clear existing meshes
+            while (helixGroup.children.length > 0) {
+                const object = helixGroup.children[0];
+                if (object.geometry) object.geometry.dispose();
+                if (object.material) object.material.dispose();
+                helixGroup.remove(object);
+            }
+            textMeshes = [];
+            
+            const text = settings.text || 'HELLO WORLD';
+            const chars = text.split('');
+            const totalChars = chars.length;
+            
+            // Create helix structure (tubes)
+            createHelixStructure();
+            
+            // Place text characters along the helix
+            chars.forEach((char, i) => {
+                const t = i / totalChars;
+                const angle = t * Math.PI * 4; // 2 complete turns
+                const y = (t - 0.5) * settings.helixHeight;
+                
+                // First helix strand
+                const x1 = Math.cos(angle) * settings.helixRadius;
+                const z1 = Math.sin(angle) * settings.helixRadius;
+                
+                // Second helix strand (180 degrees offset)
+                const x2 = Math.cos(angle + Math.PI) * settings.helixRadius;
+                const z2 = Math.sin(angle + Math.PI) * settings.helixRadius;
+                
+                // Create text sprite for first strand
+                createTextSprite(char, x1, y, z1, 0x667eea);
+                
+                // Create text sprite for second strand if we have characters
+                if (i < totalChars) {
+                    const char2 = chars[totalChars - 1 - i] || char;
+                    createTextSprite(char2, x2, y, z2, 0x764ba2);
+                }
+            });
+        }
+        
+        function createHelixStructure() {
+            const points = 200;
+            const material1 = new THREE.MeshPhongMaterial({ 
+                color: 0x667eea, 
+                transparent: true, 
+                opacity: 0.3,
+                shininess: 100
+            });
+            const material2 = new THREE.MeshPhongMaterial({ 
+                color: 0x764ba2, 
+                transparent: true, 
+                opacity: 0.3,
+                shininess: 100
+            });
+            
+            // First helix strand
+            const curve1 = new THREE.CatmullRomCurve3(
+                Array.from({ length: points }, (_, i) => {
+                    const t = i / points;
+                    const angle = t * Math.PI * 4;
+                    const x = Math.cos(angle) * settings.helixRadius;
+                    const y = (t - 0.5) * settings.helixHeight;
+                    const z = Math.sin(angle) * settings.helixRadius;
+                    return new THREE.Vector3(x, y, z);
+                })
+            );
+            
+            const tubeGeometry1 = new THREE.TubeGeometry(curve1, 200, 0.05, 8, false);
+            const tube1 = new THREE.Mesh(tubeGeometry1, material1);
+            helixGroup.add(tube1);
+            
+            // Second helix strand
+            const curve2 = new THREE.CatmullRomCurve3(
+                Array.from({ length: points }, (_, i) => {
+                    const t = i / points;
+                    const angle = t * Math.PI * 4 + Math.PI;
+                    const x = Math.cos(angle) * settings.helixRadius;
+                    const y = (t - 0.5) * settings.helixHeight;
+                    const z = Math.sin(angle) * settings.helixRadius;
+                    return new THREE.Vector3(x, y, z);
+                })
+            );
+            
+            const tubeGeometry2 = new THREE.TubeGeometry(curve2, 200, 0.05, 8, false);
+            const tube2 = new THREE.Mesh(tubeGeometry2, material2);
+            helixGroup.add(tube2);
+            
+            // Add connecting bars
+            for (let i = 0; i < 20; i++) {
+                const t = i / 20;
+                const angle = t * Math.PI * 4;
+                const y = (t - 0.5) * settings.helixHeight;
+                
+                const x1 = Math.cos(angle) * settings.helixRadius;
+                const z1 = Math.sin(angle) * settings.helixRadius;
+                const x2 = Math.cos(angle + Math.PI) * settings.helixRadius;
+                const z2 = Math.sin(angle + Math.PI) * settings.helixRadius;
+                
+                const geometry = new THREE.CylinderGeometry(0.02, 0.02, 
+                    Math.sqrt((x2-x1)**2 + (z2-z1)**2), 8);
+                const bar = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ 
+                    color: 0xffffff, 
+                    transparent: true, 
+                    opacity: 0.2 
+                }));
+                
+                bar.position.set((x1+x2)/2, y, (z1+z2)/2);
+                bar.rotation.z = Math.atan2(z2-z1, x2-x1);
+                helixGroup.add(bar);
+            }
+        }
+        
+        function createTextSprite(text, x, y, z, color) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 256;
+            canvas.height = 256;
+            
+            context.fillStyle = `#${color.toString(16).padStart(6, '0')}`;
+            context.font = 'Bold 120px Arial';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText(text, 128, 128);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ 
+                map: texture,
+                transparent: true
+            });
+            const sprite = new THREE.Sprite(material);
+            
+            sprite.position.set(x, y, z);
+            sprite.scale.set(settings.textSize * 2, settings.textSize * 2, 1);
+            
+            helixGroup.add(sprite);
+            textMeshes.push(sprite);
+        }
+        
+        function setupEventListeners() {
+            // Mouse controls
+            renderer.domElement.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMouse = { x: e.clientX, y: e.clientY };
+            });
+            
+            renderer.domElement.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    const deltaX = e.clientX - previousMouse.x;
+                    const deltaY = e.clientY - previousMouse.y;
+                    
+                    rotation.y += deltaX * 0.005;
+                    rotation.x += deltaY * 0.005;
+                    
+                    previousMouse = { x: e.clientX, y: e.clientY };
+                }
+            });
+            
+            renderer.domElement.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+            
+            renderer.domElement.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                camera.position.z += e.deltaY * 0.01;
+                camera.position.z = Math.max(5, Math.min(30, camera.position.z));
+            });
+            
+            // Text input
+            document.getElementById('textInput').addEventListener('input', (e) => {
+                settings.text = e.target.value;
+                createHelix();
+            });
+            
+            // Sliders
+            document.getElementById('helixRadius').addEventListener('input', (e) => {
+                settings.helixRadius = parseFloat(e.target.value);
+                document.getElementById('radiusValue').textContent = settings.helixRadius.toFixed(1);
+                createHelix();
+            });
+            
+            document.getElementById('helixHeight').addEventListener('input', (e) => {
+                settings.helixHeight = parseFloat(e.target.value);
+                document.getElementById('heightValue').textContent = settings.helixHeight.toFixed(1);
+                createHelix();
+            });
+            
+            document.getElementById('rotationSpeed').addEventListener('input', (e) => {
+                settings.rotationSpeed = parseFloat(e.target.value);
+                autoRotationSpeed = settings.rotationSpeed;
+                document.getElementById('speedValue').textContent = settings.rotationSpeed.toFixed(1);
+            });
+            
+            document.getElementById('textSize').addEventListener('input', (e) => {
+                settings.textSize = parseFloat(e.target.value);
+                document.getElementById('sizeValue').textContent = settings.textSize.toFixed(2);
+                createHelix();
+            });
+            
+            // Window resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Auto rotation when not dragging
+            if (!isDragging) {
+                rotation.y += autoRotationSpeed * 0.01;
+            }
+            
+            helixGroup.rotation.x = rotation.x;
+            helixGroup.rotation.y = rotation.y;
+            
+            // Make text sprites face camera
+            textMeshes.forEach(sprite => {
+                sprite.lookAt(camera.position);
+            });
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Initialize
+        init();
+    </script>
+</body>
+</html>

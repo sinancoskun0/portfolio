@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Text Helix Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to bottom, #0a0a1a, #1a1a2e);
+            color: #fff;
+            min-height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #6a11cb, #2575fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 8px;
+            text-shadow: 0 0 15px rgba(106, 17, 203, 0.3);
+        }
+        
+        .subtitle {
+            color: #a0a0c0;
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+        }
+        
+        .controls {
+            background: rgba(25, 25, 50, 0.7);
+            border-radius: 15px;
+            padding: 20px;
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: space-between;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(106, 17, 203, 0.2);
+        }
+        
+        .input-section {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .control-section {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #9d9de3;
+            font-weight: 500;
+        }
+        
+        input, select, button {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid #3a3a5d;
+            background: rgba(20, 20, 40, 0.8);
+            color: white;
+            font-size: 1rem;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #6a11cb;
+            box-shadow: 0 0 0 2px rgba(106, 17, 203, 0.2);
+        }
+        
+        button {
+            background: linear-gradient(90deg, #6a11cb, #2575fc);
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(106, 17, 203, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .instructions {
+            background: rgba(25, 25, 50, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #b0b0d0;
+            border-left: 3px solid #6a11cb;
+        }
+        
+        .instructions h3 {
+            color: #9d9de3;
+            margin-bottom: 8px;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 5px;
+        }
+        
+        .visualization-container {
+            width: 100%;
+            height: 600px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+            position: relative;
+            border: 1px solid rgba(106, 17, 203, 0.3);
+        }
+        
+        #helixCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        .stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #b0b0d0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            color: #7070a0;
+            font-size: 0.9rem;
+            padding: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+            }
+            
+            .visualization-container {
+                height: 500px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>3D Text Helix Visualizer</h1>
+            <p class="subtitle">Enter text and watch it spiral around a rotating double helix</p>
+        </header>
+        
+        <div class="controls">
+            <div class="input-section">
+                <div class="control-group">
+                    <label for="textInput">Enter your text:</label>
+                    <input type="text" id="textInput" value="Hello World! This is a 3D text helix visualizer. Enjoy the animation!" maxlength="200">
+                </div>
+                
+                <div class="control-group">
+                    <label for="fontSize">Font Size:</label>
+                    <input type="range" id="fontSize" min="10" max="60" value="30">
+                </div>
+                
+                <div class="control-group">
+                    <label for="helixColor">Helix Color:</label>
+                    <select id="helixColor">
+                        <option value="#6a11cb">Purple</option>
+                        <option value="#2575fc">Blue</option>
+                        <option value="#00b09b">Green</option>
+                        <option value="#ff416c">Pink</option>
+                        <option value="#ff4b2b">Orange</option>
+                    </select>
+                </div>
+                
+                <button id="applyText">Apply Text to Helix</button>
+            </div>
+            
+            <div class="control-section">
+                <div class="control-group">
+                    <label for="rotationSpeed">Rotation Speed:</label>
+                    <input type="range" id="rotationSpeed" min="0" max="5" step="0.1" value="1">
+                </div>
+                
+                <div class="control-group">
+                    <label for="helixRadius">Helix Radius:</label>
+                    <input type="range" id="helixRadius" min="1" max="10" step="0.1" value="4">
+                </div>
+                
+                <div class="control-group">
+                    <label for="textColor">Text Color:</label>
+                    <select id="textColor">
+                        <option value="#ffffff">White</option>
+                        <option value="#9d9de3">Light Purple</option>
+                        <option value="#6a11cb">Purple</option>
+                        <option value="#00ffaa">Neon Green</option>
+                        <option value="#ffaa00">Gold</option>
+                    </select>
+                </div>
+                
+                <button id="resetView">Reset View</button>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h3>How to Interact:</h3>
+            <ul>
+                <li><strong>Mouse Drag:</strong> Rotate the helix in 3D space</li>
+                <li><strong>Mouse Wheel:</strong> Zoom in and out</li>
+                <li><strong>Controls Panel:</strong> Adjust text, colors, and helix parameters</li>
+                <li><strong>Apply Text:</strong> Update the helix with your custom text</li>
+            </ul>
+        </div>
+        
+        <div class="visualization-container">
+            <canvas id="helixCanvas"></canvas>
+            <div class="stats">
+                Characters: <span id="charCount">0</span> | 
+                FPS: <span id="fpsCounter">0</span>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Drag to rotate | Scroll to zoom | Adjust settings for custom effects</p>
+        </div>
+    </div>
+
+    <script>
+        // Get DOM elements
+        const canvas = document.getElementById('helixCanvas');
+        const ctx = canvas.getContext('2d');
+        const textInput = document.getElementById('textInput');
+        const fontSizeSlider = document.getElementById('fontSize');
+        const helixColorSelect = document.getElementById('helixColor');
+        const textColorSelect = document.getElementById('textColor');
+        const rotationSpeedSlider = document.getElementById('rotationSpeed');
+        const helixRadiusSlider = document.getElementById('helixRadius');
+        const applyTextButton = document.getElementById('applyText');
+        const resetViewButton = document.getElementById('resetView');
+        const charCountElement = document.getElementById('charCount');
+        const fpsCounterElement = document.getElementById('fpsCounter');
+
+        // Set canvas size to match container
+        function resizeCanvas() {
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+        }
+
+        // Initialize variables
+        let text = textInput.value;
+        let fontSize = parseInt(fontSizeSlider.value);
+        let helixColor = helixColorSelect.value;
+        let textColor = textColorSelect.value;
+        let rotationSpeed = parseFloat(rotationSpeedSlider.value);
+        let helixRadius = parseFloat(helixRadiusSlider.value);
+        
+        // Mouse interaction variables
+        let isMouseDown = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+        let rotationX = 0;
+        let rotationY = 0;
+        let zoom = -20;
+        
+        // Animation variables
+        let animationAngle = 0;
+        let lastTime = 0;
+        let frameCount = 0;
+        let fps = 0;
+        
+        // Initialize
+        resizeCanvas();
+        updateCharCount();
+        
+        // Event listeners
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Apply text button
+        applyTextButton.addEventListener('click', () => {
+            text = textInput.value;
+            updateCharCount();
+        });
+        
+        // Reset view button
+        resetViewButton.addEventListener('click', () => {
+            rotationX = 0;
+            rotationY = 0;
+            zoom = -20;
+            rotationSpeed = 1;
+            rotationSpeedSlider.value = 1;
+            helixRadius = 4;
+            helixRadiusSlider.value = 4;
+        });
+        
+        // Update values from controls
+        fontSizeSlider.addEventListener('input', () => {
+            fontSize = parseInt(fontSizeSlider.value);
+        });
+        
+        helixColorSelect.addEventListener('change', () => {
+            helixColor = helixColorSelect.value;
+        });
+        
+        textColorSelect.addEventListener('change', () => {
+            textColor = textColorSelect.value;
+        });
+        
+        rotationSpeedSlider.addEventListener('input', () => {
+            rotationSpeed = parseFloat(rotationSpeedSlider.value);
+        });
+        
+        helixRadiusSlider.addEventListener('input', () => {
+            helixRadius = parseFloat(helixRadiusSlider.value);
+        });
+        
+        // Mouse interaction events
+        canvas.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isMouseDown) return;
+            
+            const deltaX = e.clientX - lastMouseX;
+            const deltaY = e.clientY - lastMouseY;
+            
+            rotationY += deltaX * 0.01;
+            rotationX += deltaY * 0.01;
+            
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            isMouseDown = false;
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            isMouseDown = false;
+        });
+        
+        canvas.addEventListener('wheel', (e) => {
+            zoom += e.deltaY * 0.05;
+            e.preventDefault();
+        });
+        
+        // Update character count
+        function updateCharCount() {
+            charCountElement.textContent = text.length;
+        }
+        
+        // 3D Projection functions
+        function project(x, y, z) {
+            const scale = 800 / (20 + zoom);
+            const projectedX = x * scale + canvas.width / 2;
+            const projectedY = y * scale + canvas.height / 2;
+            return { x: projectedX, y: projectedY, z: z };
+        }
+        
+        function rotatePoint(x, y, z, angleX, angleY) {
+            // Rotate around X axis
+            const cosX = Math.cos(angleX);
+            const sinX = Math.sin(angleX);
+            let y1 = y * cosX - z * sinX;
+            let z1 = y * sinX + z * cosX;
+            
+            // Rotate around Y axis
+            const cosY = Math.cos(angleY);
+            const sinY = Math.sin(angleY);
+            let x1 = x * cosY + z1 * sinY;
+            z1 = -x * sinY + z1 * cosY;
+            
+            return { x: x1, y: y1, z: z1 };
+        }
+        
+        // Draw helix with text
+        function drawHelix(time) {
+            // Clear canvas with gradient background
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#0a0a1a');
+            gradient.addColorStop(1, '#1a1a2e');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Calculate FPS
+            frameCount++;
+            if (time - lastTime >= 1000) {
+                fps = Math.round((frameCount * 1000) / (time - lastTime));
+                frameCount = 0;
+                lastTime = time;
+                fpsCounterElement.textContent = fps;
+            }
+            
+            // Update animation angle
+            animationAngle += 0.01 * rotationSpeed;
+            
+            // Split text into characters
+            const characters = text.split('');
+            
+            // Draw the double helix
+            for (let h = 0; h < 2; h++) {
+                // Helix parameters
+                const helixOffset = h * Math.PI; // Second helix is offset by 180 degrees
+                
+                for (let i = 0; i < characters.length; i++) {
+                    // Calculate position along the helix
+                    const t = i / characters.length * Math.PI * 6; // Three full rotations
+                    const x = helixRadius * Math.cos(t + helixOffset + animationAngle);
+                    const y = t * 1.5 - 15; // Vertical position
+                    const z = helixRadius * Math.sin(t + helixOffset + animationAngle);
+                    
+                    // Apply rotation based on mouse interaction
+                    const rotated = rotatePoint(x, y, z, rotationX, rotationY);
+                    
+                    // Project 3D point to 2D canvas
+                    const projected = project(rotated.x, rotated.y, rotated.z);
+                    
+                    // Calculate character size based on depth
+                    const depthScale = Math.max(0.3, 1 - (projected.z / 100));
+                    const charSize = fontSize * depthScale;
+                    
+                    // Draw connecting lines between characters (helix backbone)
+                    if (i > 0) {
+                        // Calculate previous point
+                        const tPrev = (i-1) / characters.length * Math.PI * 6;
+                        const xPrev = helixRadius * Math.cos(tPrev + helixOffset + animationAngle);
+                        const yPrev = tPrev * 1.5 - 15;
+                        const zPrev = helixRadius * Math.sin(tPrev + helixOffset + animationAngle);
+                        
+                        const rotatedPrev = rotatePoint(xPrev, yPrev, zPrev, rotationX, rotationY);
+                        const projectedPrev = project(rotatedPrev.x, rotatedPrev.y, rotatedPrev.z);
+                        
+                        // Draw line
+                        ctx.beginPath();
+                        ctx.moveTo(projectedPrev.x, projectedPrev.y);
+                        ctx.lineTo(projected.x, projected.y);
+                        ctx.strokeStyle = helixColor;
+                        ctx.lineWidth = 3 * depthScale;
+                        ctx.stroke();
+                    }
+                    
+                    // Draw the character
+                    ctx.font = `${charSize}px Arial, sans-serif`;
+                    ctx.fillStyle = textColor;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    // Add glow effect to characters
+                    ctx.shadowColor = textColor;
+                    ctx.shadowBlur = 15 * depthScale;
+                    ctx.fillText(characters[i], projected.x, projected.y);
+                    ctx.shadowBlur = 0;
+                }
+            }
+            
+            // Draw central axis line
+            ctx.beginPath();
+            const topPoint = rotatePoint(0, 20, 0, rotationX, rotationY);
+            const bottomPoint = rotatePoint(0, -20, 0, rotationX, rotationY);
+            const projectedTop = project(topPoint.x, topPoint.y, topPoint.z);
+            const projectedBottom = project(bottomPoint.x, bottomPoint.y, bottomPoint.z);
+            
+            ctx.moveTo(projectedTop.x, projectedTop.y);
+            ctx.lineTo(projectedBottom.x, projectedBottom.y);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Request next animation frame
+            requestAnimationFrame(drawHelix);
+        }
+        
+        // Start animation
+        requestAnimationFrame(drawHelix);
+        
+        // Initial call to set lastTime
+        lastTime = performance.now();
+    </script>
+</body>
+</html>
