@@ -2,7 +2,7 @@
 
 ## Overview
 
-Tested four AI models on generating a 3D text helix visualizer from a single prompt. Each model received the same basic prompt, then the same detailed engineered prompt. Goal: evaluate how well each handles ambiguous vs. specific instructions for visual/interactive code generation.
+Tested four AI models on generating a 3D text helix visualizer from a single prompt. Each model received the same basic prompt, then the same detailed engineered prompt. Goal: evaluate how well each handles ambiguous vs. specific instructions for visual and interactive code generation.
 
 ## Models Tested
 
@@ -32,9 +32,9 @@ Tested four AI models on generating a 3D text helix visualizer from a single pro
 
 **Basic Prompt:**
 - Black background renders, small text field with preset text appears
-- Nothing else happens — no helix, no 3D content
+- Non-functional: no helix appears, nor do any of the inputs
 - Console shows errors (THREE.FontLoader undefined)
-- **Root cause**: Uses legacy Three.js script tag pattern.
+- **Root cause**: Uses legacy Three.js script tag pattern (trends have outgrown training data)
 
 **Engineered Prompt:**
 - Uses ES6 modules (correct approach this time)
@@ -44,7 +44,7 @@ Tested four AI models on generating a 3D text helix visualizer from a single pro
 
 **Code Quality:**
 - Basic: 127 lines, legacy patterns, architectural failure
-- Advanced: 185 lines, modern ES6, but runtime failure
+- Advanced: 185 lines, modern ES6, runtime failure
 
 **Verdict:** Failed entirely. The model produced syntactically valid code that doesn't execute. Unable to produce a working Three.js application on either attempt.
 
@@ -55,37 +55,36 @@ Tested four AI models on generating a 3D text helix visualizer from a single pro
 **Basic Prompt:**
 - Visually polished UI with gradient background, rounded controls, instructions panel
 - Uses older Three.js r128 via script tag (works, but not modern)
-- **Critical flaw**: Creates a predefined(!) helix structure using `TubeGeometry` — the DNA shape exists independently of the text
+- **Critical flaw**: Creates a predefined(!) helix structure using `TubeGeometry,` meaning the DNA shape exists independently of the text
 - Text characters are placed onto(!) the existing helix, not used to build the helix
-- This fundamentally misunderstands the prompt's intent
 - All sliders functional, mouse controls work
 - Has extra features not requested: text size slider, helix height slider
 
 **Engineered Prompt:**
 - Switches to ES6 modules with import maps (modern approach)
-- Clean code with section comment headers (`// ============================================`)
-- Helix is now correctly built FROM the text — characters define the shape
+- Clean code with section comment headers
+- Helix is now correctly built from the text — characters define the shape
 - Odd characters -> Strand A, even characters -> Strand B (correct)
 - All UI controls work: text input (real-time), speed slider, radius slider, color pickers
-- Proper sprite cleanup with dispose() calls
+- Proper sprite cleanup with dispose()-method calls
 - Connecting lines between characters on each strand
 
 **Code Quality:**
 - Basic: 452 lines, verbose, extra features, wrong interpretation
 - Advanced: 312 lines, well-structured sections, correct implementation
 
-**Verdict:** Basic prompt produced a polished but fundamentally incorrect interpretation. Engineered prompt achieved full compliance with clean, readable code.
+**Verdict:** Basic prompt produces a polished but fundamentally incorrect interpretation. Engineered prompt achieves full compliance with clean, readable code.
 
 ---
 
 ### Deepseek
 
 **Basic Prompt:**
-- **Unique approach**: Uses vanilla Canvas 2D with manual 3D projection mathematics — no Three.js at all
+- **Unique approach**: Uses vanilla Canvas 2D with manual 3D projection mathematics, no Three.js used at all
 - Implements own `rotatePoint()` and `project()` functions for 3D→2D transformation
 - Very polished UI with gradient header, explanatory subtitle, FPS counter, character count
 - Includes "Apply Text" button (not real-time) and "Reset View" button
-- **Critical flaw**: CSS layout breaks the page — helix canvas is only 1/4 visible, cannot scroll to see it
+- **But**: CSS layout breaks the page; the helix canvas is only 1/4 visible, cannot scroll to see it
 - What's visible looks correct: both strands, connecting lines, text glow effect
 - Has features like dropdown color select instead of color picker
 
@@ -99,8 +98,8 @@ Tested four AI models on generating a 3D text helix visualizer from a single pro
 - Best UI design: subtle glassmorphism, cyan accent color, clear instructions panel
 
 **Code Quality:**
-- Basic: 532 lines, manual 3D math (impressive but wrong tool), layout bug
-- Advanced: 617 lines, OOP pattern, most maintainable code
+- Basic: 532 lines, manual 3D math, but layout bug
+- Advanced: 617 lines, OOP pattern, very maintainable code
 
 **Verdict:** Basic prompt showed creativity (building 3D from scratch) but had a blocking bug. Engineered prompt produced the most polished and professionally structured output.
 
@@ -112,13 +111,13 @@ Tested four AI models on generating a 3D text helix visualizer from a single pro
 - Uses ES6 modules with import maps (modern)
 - Uses `FontLoader` and `TextGeometry` for actual 3D extruded text (not sprites)
 - Minimal, functional UI: just a text input and brief instructions
-- **Flaw**: Both strands display the SAME text repeated, not split between strands
+- **Flaw**: Both strands display the same text repeated, not split between strands
 - Shape is more of a loose spiral than a true double helix
 - Works and updates in real-time, but interpretation is imprecise
 
 **Engineered Prompt:**
 - Maintains ES6 modules approach
-- Uses state management object pattern (clean):
+- Uses state management object pattern (clean and maintainable):
   ```javascript
   const state = {
       text: "HELLO WORLD",
@@ -131,7 +130,7 @@ Tested four AI models on generating a 3D text helix visualizer from a single pro
 - Adds fog effect for depth perception (`scene.fog = new THREE.FogExp2(...)`)
 - All features work correctly
 - Proper cleanup with geometry/material disposal
-- Characters correctly split: odd→Strand A, even→Strand B
+- Characters correctly split: odd -> Strand A, even -> Strand B
 
 **Code Quality:**
 - Basic: 108 lines, minimal, works but imprecise
@@ -149,7 +148,7 @@ Tested four AI models on generating a 3D text helix visualizer from a single pro
 |-------|--------------|-------------------|
 | ChatGPT | Legacy script tags | ES6 modules |
 | Claude | Legacy script tags | ES6 modules |
-| Deepseek | Vanilla Canvas 2D (!!) | OOP class pattern |
+| Deepseek | Vanilla Canvas 2D | OOP class pattern |
 | Gemini | ES6 modules | ES6 modules + state object |
 
 ### Lines of Code
@@ -193,7 +192,7 @@ Three of four models improved dramatically with the engineered prompt:
 - Deepseek: Broken layout → polished product
 - Gemini: Imprecise interpretation → full compliance
 
-The basic prompt's ambiguity ("characters spiral around a rotating double helix") led to divergent interpretations. The engineered prompt's explicit requirements (odd/even split, 3 rotations, specific controls) left no room for misinterpretation.
+The basic prompt's ambiguity ("characters spiral around a rotating double helix") led to divergent interpretations. The engineered prompt's explicit requirements (odd/even split, 3 rotations, specific controls) left no room for misinterpretation. But: creativity (Deepseek's impressive UI, Claude's additional features) are lost with that clarifying specificity also.
 
 ### 2. ChatGPT's Three.js handling is broken
 
@@ -226,27 +225,18 @@ All three working models (Claude, Deepseek, Gemini) produced functional UIs, but
 
 ### For using AI code generation:
 
-1. **Always use detailed prompts** for complex visual/interactive work. Ambiguity leads to divergent (often wrong) interpretations.
+1. **Always use detailed, specifically engineered prompts** for complex visual/interactive work. Ambiguity leads to divergent (often wrong) interpretations.
 
 2. **Specify the tech stack explicitly** (e.g., "using Three.js from CDN with ES6 modules"). This prevents models from choosing incompatible approaches.
 
 3. **Test immediately**. ChatGPT's output looked valid but didn't run. Syntax validity ≠ runtime correctness.
 
-4. **Try multiple models** for important tasks. Performance varies significantly by domain — Deepseek excelled here but might not elsewhere.
-
-### Model selection for frontend/3D work:
-
-| Use Case | Recommended |
-|----------|-------------|
-| Quick prototype | Gemini (concise, works) |
-| Production code | Deepseek (best structure) |
-| Learning/readability | Claude (well-commented) |
-| Three.js specifically | Avoid ChatGPT for now |
+4. **Try multiple models** for important tasks. Performance varies significantly by domain — Deepseek excelled here but might not elsewhere. Settling for one model and sticking to it may lead to productivity/time loss (i.e. sticking with ChatGPTs result and trying to fix it manually/prompting further to get it functional might lead to loss of valuable time, whereas an immedate switch to a different model would have led to a working solution much faster)
 
 ---
 
 ## Conclusion
 
-Prompt engineering transformed three out of four models from "partially working" to "fully compliant." The one exception (ChatGPT) failed regardless of prompt quality, suggesting model-specific limitations with Three.js.
+Prompt engineering transformed three out of four models from "partially working" to "fully compliant." The one exception (ChatGPT) failed regardless of prompt quality.
 
 For visual/interactive code generation, **prompt specificity matters more than model choice** — but given equal prompts, Deepseek and Gemini outperformed expectations while ChatGPT underperformed significantly.
