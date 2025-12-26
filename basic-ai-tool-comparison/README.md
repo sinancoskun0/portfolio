@@ -6,18 +6,19 @@
 ![Deepseek](https://img.shields.io/badge/Deepseek-4D6BFE)
 ![Gemini](https://img.shields.io/badge/Gemini-8E75B2?logo=google&logoColor=white)
 
-Comparing AI code generation tools on a visual, interactive task: generating a 3D text helix visualizer from a single prompt.
+Comparing AI code generation tools with a task where success is immediately visible - a 3D text helix visualizer with interactive elements. 
+All four tested models are given the same prompts (as visible in the prompts.txt file), then compared and contrasted according to the requirements defined in the prompt.
 
 ## The Task
 
-User inputs text → characters spiral around a rotating double-helix (DNA-style) structure → interactive controls for rotation, zoom, colors, speed.
+When the user inputs text (specifically; a character), that character is supposed to spiral around a rotating helix-like structure. The structure is meant to have interactive controls to define the way it rotates, a zoom function, a way to set the colors of the structure, and its rotation speed.
 
 ## Models Tested
 
-- ChatGPT (GPT-4o, free tier)
-- Claude (3.5 Sonnet, free tier)
-- Deepseek (V3, free tier)
-- Gemini (1.5, free tier)
+- ChatGPT (GPT-4o)
+- Claude (3.5 Sonnet)
+- Deepseek (V3)
+- Gemini (1.5)
 
 ## Quick Results
 
@@ -33,9 +34,8 @@ User inputs text → characters spiral around a rotating double-helix (DNA-style
 
 ## Key Takeaways
 
-1. **Prompt specificity ** — 3/4 models went from broken/wrong to fully functional with detailed requirements
-2. **ChatGPT failed entirely** on Three.js despite syntactically valid code
-3. **Deepseek surprised** — best code structure (OOP), best UI polish
-4. **Test immediately** — code that looks correct may not run
+1. **Prompt specificity matters** — 3/4 models went from broken/wrong to fully functional with detailed requirements
+2. **ChatGPT failed** on Three.js despite syntactically valid code
+3. **Deepseek overperforemd** with the best code structure (OOP) and most polished UI
 
 See [ANALYSIS.md](ANALYSIS.md) for full technical breakdown.
