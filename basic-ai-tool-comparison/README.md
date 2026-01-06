@@ -24,18 +24,18 @@ When the user inputs text (specifically; a character), that character is suppose
 
 | Model | Basic Prompt | Engineered Prompt |
 |-------|--------------|-------------------|
-| ChatGPT | ❌ Broken | ❌ Broken |
-| Claude | ⚠️ Misinterpreted | ✅ Full |
-| Deepseek | ⚠️ UI bug | ✅ Best |
-| Gemini | ⚠️ Imprecise | ✅ Full |
+| ChatGPT |  Broken |  Broken |
+| Claude |  Misinterpreted |  Full |
+| Deepseek | UI bug |  Full (Best) |
+| Gemini |  Imprecise |  Full |
 
 ## Contents
 
 
 ## Key Takeaways
 
-1. **Prompt specificity matters** — 3/4 models went from broken/wrong to fully functional with detailed requirements
-2. **ChatGPT failed** on Three.js despite syntactically valid code
+1. **Prompt specificity matters**: 3 out of 4 models went from broken/wrong to fully functional with detailed requirements
+2. **ChatGPT failed** on despite syntactically valid code
 3. **Deepseek overperforemd** with the best code structure (OOP) and most polished UI
 
 See [ANALYSIS.md](ANALYSIS.md) for full technical breakdown.
