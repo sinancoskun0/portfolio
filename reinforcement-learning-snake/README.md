@@ -3,10 +3,11 @@
 
 A Q-learning agent that learns to play Snake from scratch using tabular reinforcement learning.
 
-![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![NumPy](https://img.shields.io/badge/NumPy-013243?style=for-the-badge&logo=numpy&logoColor=white)
-![Pygame](https://img.shields.io/badge/Pygame-CE-00D404?style=for-the-badge&logo=pygame&logoColor=white)
-![Reinforcement Learning](https://img.shields.io/badge/Reinforcement_Learning-Q--Learning-FF6F61?style=for-the-badge)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![NumPy](https://img.shields.io/badge/NumPy-013243?logo=numpy&logoColor=white)
+![Pygame](https://img.shields.io/badge/Pygame--CE-00D404?logo=pygame&logoColor=white)
+![Matplotlib](https://img.shields.io/badge/Matplotlib-11557C?logo=matplotlib&logoColor=white)
+![Reinforcement Learning](https://img.shields.io/badge/Reinforcement%20Learning-Q--Learning-FF6F61)
 
 ---
 
@@ -145,6 +146,7 @@ This creates a performance ceiling around 6-8 average score. Higher performance 
 | `epsilon_decay` | 0.9996 | Exploration schedule |
 | `episodes` | 20,000 | Training length |
 | `grid_size` | 15×15 | Game board dimensions |
+
 
 
 
