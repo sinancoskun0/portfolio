@@ -8,6 +8,7 @@ Schwerpunkte: Software Engineering, Prozessoptimierung, Machine Learning
 
 | Projekt | Beschreibung | Stack |
 |---------|--------------|-------|
+| [Monte Carlo Stock Simulation](./projects/monte-carlo-stock-sim) | Monte-Carlo-Simulation zur Abschätzung zukünftiger Aktienpreisverteilungen auf Basis historischer Marktdaten | Python, NumPy, Pandas, Matplotlib |
 | [Process Optimization Sample](./project-process-optimization) | Fiktives Consulting-Szenario: Prozessanalyse, BPMN-Modellierung, KPI-Dashboard | Camunda, Confluence, Jira, Power BI |
 | [AI Tool Comparison](./basic-ai-tool-comparison) | Vergleich von AI-Code-Generatoren anhand einer 3D-Visualisierungsaufgabe | Three.js, GPT-4o, Claude, Deepseek, Gemini |
 | [Reinforcement Learning Snake](./reinforcement-learning-snake) | Snake-Agent mit Q-Learning | Python |
