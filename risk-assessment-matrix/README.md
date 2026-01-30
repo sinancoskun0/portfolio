@@ -41,22 +41,22 @@ Risk Score = Likelihood × Impact
 ---
 
 ## 🚀 Run Loccally
-
+```
 bash
-pip intall -r requirements.txt
+pip install -r requirements.txt
 streamlit run app.py
-
+```
 ---
 
 ## 📁 Structure
-
+```
 risk-assessment-matrix/
 ├── app.py
 ├── risk_calculator.py
 ├── requirements.txt
 └── README.md
 └── risk-assessment-tool.png
-
+```
 ---
 
 ## 🎯 Intended Use
